@@ -1,6 +1,8 @@
 # @rsbuild/plugin-pug
 
-@rsbuild/plugin-pug is a Rsbuild plugin to do something.
+An Rsbuild plugin to provide support for the Pug template engine.
+
+> This repo is still working in progress.
 
 <p>
   <a href="https://npmjs.com/package/@rsbuild/plugin-pug">
