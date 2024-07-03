@@ -18,8 +18,8 @@ test('should allow to use .pug template file', async ({ page }) => {
 	const testPug = page.locator('#test-pug');
 	await expect(testPug).toHaveText('Pug source code!');
 
-	const testEl = page.locator('#test');
-	await expect(testEl).toHaveText('Hello Rsbuild!');
+	const button1 = page.locator('#button1');
+	await expect(button1).toHaveText('A: 0');
 
 	await server.close();
 });

@@ -1,4 +1,4 @@
-import { pluginPug } from '../src';
+import { pluginPug } from '@rsbuild/plugin-pug';
 
 export default {
 	plugins: [pluginPug()],
