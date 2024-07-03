@@ -4,8 +4,6 @@ An Rsbuild plugin to provide support for the Pug template engine.
 
 > [Pug](https://github.com/pugjs/pug) is a robust, elegant, feature rich template engine for Node.js.
 
-> This repo is still working in progress.
-
 <p>
   <a href="https://npmjs.com/package/@rsbuild/plugin-pug">
    <img src="https://img.shields.io/npm/v/@rsbuild/plugin-pug?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
