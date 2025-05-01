@@ -1,6 +1,6 @@
 import type { RsbuildPlugin } from '@rsbuild/core';
-import { reduceConfigs } from 'reduce-configs';
 import type { Options as PugOptions } from 'pug';
+import { reduceConfigs } from 'reduce-configs';
 
 export type PluginPugOptions = {
 	/**
@@ -17,7 +17,9 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 	async setup(api) {
 		const VUE_SFC_REGEXP = /\.vue$/;
-		const { compile, compileClient } = await import('pug');
+		const { compile, compileClientWithDependenciesTracked } = await import(
+			'pug'
+		);
 
 		const pugOptions = reduceConfigs({
 			initial: {
@@ -50,8 +52,17 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 				}
 
 				// Compile pug to JavaScript for html-webpack-plugin
-				const templateCode = compileClient(code, options);
-				return `${templateCode}; export default template;`;
+				const { body, dependencies } = compileClientWithDependenciesTracked(
+					code,
+					options,
+				);
+
+				// Watch all dependencies (includes, extends, etc.)
+				for (const dependency of dependencies) {
+					addDependency(dependency);
+				}
+
+				return `${body}; export default template;`;
 			},
 		);
 	},

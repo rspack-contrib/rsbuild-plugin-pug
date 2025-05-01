@@ -21,5 +21,8 @@ test('should allow to use .pug template file', async ({ page }) => {
 	const testEl = page.locator('#test');
 	await expect(testEl).toHaveText('Hello Rsbuild!');
 
+	const dependencyEl = page.locator('#dependency');
+	await expect(dependencyEl).toHaveText('dependency text');
+
 	await server.close();
 });
