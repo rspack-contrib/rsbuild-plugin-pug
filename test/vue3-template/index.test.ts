@@ -21,5 +21,8 @@ test('should allow to use .pug template file', async ({ page }) => {
 	const button1 = page.locator('#button1');
 	await expect(button1).toHaveText('A: 0');
 
+	const dependencyEl = page.locator('#dependency');
+	await expect(dependencyEl).toHaveText('dependency text');
+
 	await server.close();
 });
