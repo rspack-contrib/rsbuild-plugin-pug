@@ -7,12 +7,12 @@ include ./dependency
 import { ref } from 'vue';
 
 export default {
-	setup() {
-		const count = ref(0);
+  setup() {
+    const count = ref(0);
 
-		return {
-			count,
-		};
-	},
+    return {
+      count,
+    };
+  },
 };
 </script>
