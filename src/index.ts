@@ -48,7 +48,6 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		 */
 		const triggerPageReload = debounce(
 			() => {
-				console.log('triggerPageReload');
 				state.server?.sockWrite('static-changed');
 			},
 			100,
