@@ -1,4 +1,10 @@
-import type { RsbuildPlugin } from '@rsbuild/core';
+import type {
+	DevConfig,
+	RsbuildPlugin,
+	SetupMiddlewaresFn,
+	SetupMiddlewaresServer,
+} from '@rsbuild/core';
+import debounce from 'lodash/debounce.js';
 import type { Options as PugOptions } from 'pug';
 import { reduceConfigs } from 'reduce-configs';
 
@@ -29,6 +35,57 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 			config: options.pugOptions,
 		});
 
+		const state: {
+			readyToReload: boolean;
+			server?: SetupMiddlewaresServer;
+		} = {
+			readyToReload: false,
+			server: undefined,
+		};
+
+		/**
+		 * Trigger a page reload once on .pug entry rebuild
+		 */
+		const triggerPageReload = debounce(
+			() => {
+				console.log('triggerPageReload');
+				state.server?.sockWrite('static-changed');
+			},
+			100,
+			{
+				leading: false,
+				trailing: true,
+			},
+		);
+
+		// Setup middleware to get access to the dev server instance.
+		api.modifyRsbuildConfig((config) => {
+			const setupMiddlewares = config.dev?.setupMiddlewares ?? [];
+
+			const middleware: SetupMiddlewaresFn = (_, server) => {
+				state.server = server;
+			};
+
+			const dev: DevConfig = {
+				...config.dev,
+				setupMiddlewares: [...setupMiddlewares, middleware],
+			};
+
+			return {
+				...config,
+				dev,
+			};
+		});
+
+		api.onCloseDevServer(() => {
+			state.server = undefined;
+		});
+
+		// Prevent reload on initial build
+		api.onDevCompileDone(() => {
+			state.readyToReload = true;
+		});
+
 		api.transform(
 			{ test: /\.pug$/ },
 			({ code, resourcePath, addDependency }) => {
@@ -57,9 +114,13 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 					options,
 				);
 
-				// Watch all dependencies (includes, extends, etc.)
-				for (const dependency of dependencies) {
+				// Watch all unique dependencies (includes, extends, etc.)
+				for (const dependency of Array.from(new Set(dependencies))) {
 					addDependency(dependency);
+				}
+
+				if (state.readyToReload === true) {
+					triggerPageReload();
 				}
 
 				return `${body}; export default template;`;
