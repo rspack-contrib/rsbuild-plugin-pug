@@ -1,5 +1,4 @@
 import type {
-	DevConfig,
 	RsbuildPlugin,
 	SetupMiddlewaresFn,
 	SetupMiddlewaresServer,
@@ -58,22 +57,16 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		);
 
 		// Setup middleware to get access to the dev server instance.
-		api.modifyRsbuildConfig((config) => {
-			const setupMiddlewares = config.dev?.setupMiddlewares ?? [];
-
+		api.modifyRsbuildConfig((config, { mergeRsbuildConfig }) => {
 			const middleware: SetupMiddlewaresFn = (_, server) => {
 				state.server = server;
 			};
 
-			const dev: DevConfig = {
-				...config.dev,
-				setupMiddlewares: [...setupMiddlewares, middleware],
-			};
-
-			return {
-				...config,
-				dev,
-			};
+			return mergeRsbuildConfig(config, {
+				dev: {
+					setupMiddlewares: [middleware],
+				},
+			});
 		});
 
 		api.onCloseDevServer(() => {
