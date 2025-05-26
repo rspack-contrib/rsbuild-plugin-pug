@@ -37,9 +37,11 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		const state: {
 			readyToReload: boolean;
 			server?: SetupMiddlewaresServer;
+			dependencies: Set<string>;
 		} = {
 			readyToReload: false,
 			server: undefined,
+			dependencies: new Set(),
 		};
 
 		/**
@@ -76,6 +78,7 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		// Prevent reload on initial build
 		api.onDevCompileDone(() => {
 			state.readyToReload = true;
+			state.dependencies.clear();
 		});
 
 		api.transform(
@@ -100,22 +103,33 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 					return template();
 				}
 
-				// Compile pug to JavaScript for html-webpack-plugin
-				const { body, dependencies } = compileClientWithDependenciesTracked(
-					code,
-					options,
-				);
+				try {
+					// Compile pug to JavaScript for html-webpack-plugin
+					const { body, dependencies } = compileClientWithDependenciesTracked(
+						code,
+						options,
+					);
 
-				// Watch all unique dependencies (includes, extends, etc.)
-				for (const dependency of Array.from(new Set(dependencies))) {
-					addDependency(dependency);
+					state.dependencies.clear();
+
+					// Persis dependencies across builds in case is compilation error occurs
+					state.dependencies = new Set(dependencies);
+
+					// Watch all unique dependencies (includes, extends, etc.)
+					for (const dependency of Array.from(state.dependencies)) {
+						addDependency(dependency);
+					}
+
+					if (state.readyToReload === true) {
+						triggerPageReload();
+					}
+
+					return `${body}; export default template;`;
+				} finally {
+					for (const dependency of Array.from(state.dependencies)) {
+						addDependency(dependency);
+					}
 				}
-
-				if (state.readyToReload === true) {
-					triggerPageReload();
-				}
-
-				return `${body}; export default template;`;
 			},
 		);
 	},
