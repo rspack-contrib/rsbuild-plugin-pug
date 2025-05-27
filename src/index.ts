@@ -1,5 +1,4 @@
 import type {
-	DevConfig,
 	RsbuildPlugin,
 	SetupMiddlewaresFn,
 	SetupMiddlewaresServer,
@@ -38,9 +37,11 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		const state: {
 			readyToReload: boolean;
 			server?: SetupMiddlewaresServer;
+			dependencies: Set<string>;
 		} = {
 			readyToReload: false,
 			server: undefined,
+			dependencies: new Set(),
 		};
 
 		/**
@@ -58,22 +59,16 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		);
 
 		// Setup middleware to get access to the dev server instance.
-		api.modifyRsbuildConfig((config) => {
-			const setupMiddlewares = config.dev?.setupMiddlewares ?? [];
-
+		api.modifyRsbuildConfig((config, { mergeRsbuildConfig }) => {
 			const middleware: SetupMiddlewaresFn = (_, server) => {
 				state.server = server;
 			};
 
-			const dev: DevConfig = {
-				...config.dev,
-				setupMiddlewares: [...setupMiddlewares, middleware],
-			};
-
-			return {
-				...config,
-				dev,
-			};
+			return mergeRsbuildConfig(config, {
+				dev: {
+					setupMiddlewares: [middleware],
+				},
+			});
 		});
 
 		api.onCloseDevServer(() => {
@@ -83,6 +78,7 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		// Prevent reload on initial build
 		api.onDevCompileDone(() => {
 			state.readyToReload = true;
+			state.dependencies.clear();
 		});
 
 		api.transform(
@@ -107,22 +103,33 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 					return template();
 				}
 
-				// Compile pug to JavaScript for html-webpack-plugin
-				const { body, dependencies } = compileClientWithDependenciesTracked(
-					code,
-					options,
-				);
+				try {
+					// Compile pug to JavaScript for html-webpack-plugin
+					const { body, dependencies } = compileClientWithDependenciesTracked(
+						code,
+						options,
+					);
 
-				// Watch all unique dependencies (includes, extends, etc.)
-				for (const dependency of Array.from(new Set(dependencies))) {
-					addDependency(dependency);
+					state.dependencies.clear();
+
+					// Persis dependencies across builds in case is compilation error occurs
+					state.dependencies = new Set(dependencies);
+
+					// Watch all unique dependencies (includes, extends, etc.)
+					for (const dependency of Array.from(state.dependencies)) {
+						addDependency(dependency);
+					}
+
+					if (state.readyToReload === true) {
+						triggerPageReload();
+					}
+
+					return `${body}; export default template;`;
+				} finally {
+					for (const dependency of Array.from(state.dependencies)) {
+						addDependency(dependency);
+					}
 				}
-
-				if (state.readyToReload === true) {
-					triggerPageReload();
-				}
-
-				return `${body}; export default template;`;
 			},
 		);
 	},
