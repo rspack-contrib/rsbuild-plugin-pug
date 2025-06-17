@@ -115,17 +115,13 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 					// Persis dependencies across builds in case is compilation error occurs
 					state.dependencies = new Set(dependencies);
 
-					// Watch all unique dependencies (includes, extends, etc.)
-					for (const dependency of Array.from(state.dependencies)) {
-						addDependency(dependency);
-					}
-
 					if (state.readyToReload === true) {
 						triggerPageReload();
 					}
 
 					return `${body}; export default template;`;
 				} finally {
+					// Watch all unique dependencies (includes, extends, etc.)
 					for (const dependency of Array.from(state.dependencies)) {
 						addDependency(dependency);
 					}
