@@ -37,11 +37,11 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		const state: {
 			readyToReload: boolean;
 			server?: SetupMiddlewaresServer;
-			dependencies: Set<string>;
+			dependencies: Map<string, Set<string>>;
 		} = {
 			readyToReload: false,
 			server: undefined,
-			dependencies: new Set(),
+			dependencies: new Map(),
 		};
 
 		/**
@@ -110,10 +110,10 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 						options,
 					);
 
-					state.dependencies.clear();
+					state.dependencies.delete(resourcePath);
 
-					// Persis dependencies across builds in case is compilation error occurs
-					state.dependencies = new Set(dependencies);
+					// Persis dependencies across builds in case if compilation error occurs
+					state.dependencies.set(resourcePath, new Set(dependencies));
 
 					if (state.readyToReload === true) {
 						triggerPageReload();
@@ -122,7 +122,9 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 					return `${body}; export default template;`;
 				} finally {
 					// Watch all unique dependencies (includes, extends, etc.)
-					for (const dependency of Array.from(state.dependencies)) {
+					for (const dependency of Array.from(
+						state.dependencies.get(resourcePath) ?? [],
+					)) {
 						addDependency(dependency);
 					}
 				}
