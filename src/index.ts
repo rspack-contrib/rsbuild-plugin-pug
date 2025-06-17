@@ -73,12 +73,12 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 		api.onCloseDevServer(() => {
 			state.server = undefined;
+			state.dependencies.clear();
 		});
 
 		// Prevent reload on initial build
 		api.onDevCompileDone(() => {
 			state.readyToReload = true;
-			state.dependencies.clear();
 		});
 
 		api.transform(
