@@ -1,8 +1,4 @@
-import type {
-	RsbuildPlugin,
-	SetupMiddlewaresFn,
-	SetupMiddlewaresServer,
-} from '@rsbuild/core';
+import type { RsbuildDevServer, RsbuildPlugin } from '@rsbuild/core';
 import debounce from 'lodash/debounce.js';
 import type { Options as PugOptions } from 'pug';
 import { reduceConfigs } from 'reduce-configs';
@@ -36,7 +32,7 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 		const state: {
 			readyToReload: boolean;
-			server?: SetupMiddlewaresServer;
+			server?: RsbuildDevServer;
 			dependencies: Map<string, Set<string>>;
 		} = {
 			readyToReload: false,
@@ -59,16 +55,8 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		);
 
 		// Setup middleware to get access to the dev server instance.
-		api.modifyRsbuildConfig((config, { mergeRsbuildConfig }) => {
-			const middleware: SetupMiddlewaresFn = (_, server) => {
-				state.server = server;
-			};
-
-			return mergeRsbuildConfig(config, {
-				dev: {
-					setupMiddlewares: [middleware],
-				},
-			});
+		api.onBeforeStartDevServer(({ server }) => {
+			state.server = server;
 		});
 
 		api.onCloseDevServer(() => {
