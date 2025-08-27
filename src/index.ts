@@ -1,7 +1,7 @@
 import type {
 	RsbuildPlugin,
+	SetupMiddlewaresContext,
 	SetupMiddlewaresFn,
-	SetupMiddlewaresServer,
 } from '@rsbuild/core';
 import debounce from 'lodash/debounce.js';
 import type { Options as PugOptions } from 'pug';
@@ -36,7 +36,7 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 		const state: {
 			readyToReload: boolean;
-			server?: SetupMiddlewaresServer;
+			server?: SetupMiddlewaresContext;
 			dependencies: Set<string>;
 		} = {
 			readyToReload: false,
