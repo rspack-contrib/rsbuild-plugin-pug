@@ -1,8 +1,4 @@
-import type {
-	RsbuildPlugin,
-	SetupMiddlewaresContext,
-	SetupMiddlewaresFn,
-} from '@rsbuild/core';
+import type { RsbuildDevServer, RsbuildPlugin } from '@rsbuild/core';
 import debounce from 'lodash/debounce.js';
 import type { Options as PugOptions } from 'pug';
 import { reduceConfigs } from 'reduce-configs';
@@ -36,12 +32,12 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 		const state: {
 			readyToReload: boolean;
-			server?: SetupMiddlewaresContext;
-			dependencies: Set<string>;
+			server?: RsbuildDevServer;
+			dependencies: Map<string, Set<string>>;
 		} = {
 			readyToReload: false,
 			server: undefined,
-			dependencies: new Set(),
+			dependencies: new Map(),
 		};
 
 		/**
@@ -59,26 +55,18 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		);
 
 		// Setup middleware to get access to the dev server instance.
-		api.modifyRsbuildConfig((config, { mergeRsbuildConfig }) => {
-			const middleware: SetupMiddlewaresFn = (_, server) => {
-				state.server = server;
-			};
-
-			return mergeRsbuildConfig(config, {
-				dev: {
-					setupMiddlewares: [middleware],
-				},
-			});
+		api.onBeforeStartDevServer(({ server }) => {
+			state.server = server;
 		});
 
 		api.onCloseDevServer(() => {
 			state.server = undefined;
+			state.dependencies.clear();
 		});
 
 		// Prevent reload on initial build
 		api.onDevCompileDone(() => {
 			state.readyToReload = true;
-			state.dependencies.clear();
 		});
 
 		api.transform(
@@ -110,15 +98,10 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 						options,
 					);
 
-					state.dependencies.clear();
+					state.dependencies.delete(resourcePath);
 
-					// Persis dependencies across builds in case is compilation error occurs
-					state.dependencies = new Set(dependencies);
-
-					// Watch all unique dependencies (includes, extends, etc.)
-					for (const dependency of Array.from(state.dependencies)) {
-						addDependency(dependency);
-					}
+					// Persis dependencies across builds in case if compilation error occurs
+					state.dependencies.set(resourcePath, new Set(dependencies));
 
 					if (state.readyToReload === true) {
 						triggerPageReload();
@@ -126,7 +109,10 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 
 					return `${body}; export default template;`;
 				} finally {
-					for (const dependency of Array.from(state.dependencies)) {
+					// Watch all unique dependencies (includes, extends, etc.)
+					for (const dependency of Array.from(
+						state.dependencies.get(resourcePath) ?? [],
+					)) {
 						addDependency(dependency);
 					}
 				}
