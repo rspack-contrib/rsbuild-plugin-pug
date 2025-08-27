@@ -65,7 +65,7 @@ export const pluginPug = (options: PluginPugOptions = {}): RsbuildPlugin => ({
 		});
 
 		// Prevent reload on initial build
-		api.onDevCompileDone(() => {
+		api.onAfterDevCompile(() => {
 			state.readyToReload = true;
 		});
 
